@@ -9,13 +9,14 @@ import { useMedController } from './src/controllers/MedController';
 import { BottomNav } from './src/views/components';
 import Login from './src/views/Login';
 import Home from './src/views/Home';
-import AddMed from './src/views/AddMed';
+import AddMed, { EditarRemedio } from './src/views/AddMed';
 import History from './src/views/History';
 import Assistant from './src/views/Assistant';
 import Profile from './src/views/Profile';
 
 export default function App() {
   const [screen, setScreen] = useState('home');
+  const [editando, setEditando] = useState(null); // remédio aberto na tela de edição
   const auth = useAuthController();
   const m = useMedController(!!auth.user);
   const entrar = async (email, senha) => { if (await auth.entrar(email, senha)) setScreen('home'); };
@@ -23,6 +24,9 @@ export default function App() {
   const cadastrar = async (email, senha) => { if (await auth.cadastrar(email, senha)) setScreen('profile'); };
   const sair = () => { auth.sair(); setScreen('home'); };
   const add = async (med) => { await m.adicionar(med); setScreen('home'); };
+  // Editar mantém o dia escolhido na Home (por isso usa setScreen, e não ir).
+  const abrirEdicao = (med) => { setEditando(med); setScreen('edit'); };
+  const salvarEdicao = async (med) => { await m.editar(editando.id, med); setScreen('home'); };
   // Ao sair da Home, a faixa de dias volta para hoje (o Histórico mostra o "Resumo de Hoje").
   const ir = (tela) => {
     if (tela !== 'home' && m.dia !== hoje()) m.selecionarDia(hoje());
@@ -42,9 +46,13 @@ export default function App() {
           )}
           {logged && screen === 'home' && (
             <Home meds={m.meds} dia={m.dia} onSelectDay={m.selecionarDia} user={auth.user} go={ir}
-              onTake={m.tomar} loading={m.loading} error={m.error} onReload={m.carregar} />
+              onTake={m.tomar} loading={m.loading} error={m.error} onReload={m.carregar}
+              onEdit={abrirEdicao} onDelete={m.excluir} aviso={m.aviso} onClearAviso={m.limparAviso} />
           )}
           {logged && screen === 'add' && <AddMed onBack={() => setScreen('home')} onSave={add} />}
+          {logged && screen === 'edit' && editando && (
+            <EditarRemedio inicial={editando} onBack={() => setScreen('home')} onSave={salvarEdicao} />
+          )}
           {logged && screen === 'history' && <History meds={m.meds} />}
           {logged && screen === 'assistant' && <Assistant />}
           {logged && screen === 'profile' && <Profile user={auth.user} onSave={auth.salvarPerfil} onLogout={sair} />}

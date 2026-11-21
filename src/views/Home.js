@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, ScrollView, Pressable, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
 import { C } from '../theme';
 import { dataISO, deISO, hoje } from '../config';
 import { Btn, Card, MESES, SEMANA, SEMANA_NOME } from './components';
+import OpcoesRemedio from './OpcoesRemedio';
 
 // Faixa de 7 dias: 3 antes, hoje e 3 depois.
 const faixaDeDias = (agora) => [-3, -2, -1, 0, 1, 2, 3].map((dif) => {
@@ -19,7 +20,10 @@ const Situacao = ({ icone, texto, cor, fundo }) => (
   </View>
 );
 
-export default function Home({ meds, dia, onSelectDay, user, go, onTake, loading, error, onReload }) {
+export default function Home({ meds, dia, onSelectDay, user, go, onTake, loading, error, onReload,
+  onEdit, onDelete, aviso, onClearAviso }) {
+  const [opcoes, setOpcoes] = useState(null); // remédio com a janela de opções aberta
+  const abrirOpcoes = (m) => { onClearAviso(); setOpcoes(m); };
   const hojeISO = hoje();
   const eHoje = dia === hojeISO;
   const passado = dia < hojeISO; // datas yyyy-MM-dd podem ser comparadas como texto
@@ -90,6 +94,16 @@ export default function Home({ meds, dia, onSelectDay, user, go, onTake, loading
           })}
         </ScrollView>
 
+        {!!aviso && (
+          <View accessibilityLiveRegion="polite" style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 20, marginTop: 16, padding: 12, paddingLeft: 16, borderRadius: 16, backgroundColor: C.okBg, borderWidth: 2, borderColor: C.ok }}>
+            <Ionicons name="checkmark-circle" size={28} color={C.okDark} />
+            <Text style={{ flex: 1, fontSize: 18, fontWeight: '700', color: C.okDark }}>{aviso}</Text>
+            <Pressable onPress={onClearAviso} accessibilityRole="button" accessibilityLabel="Fechar aviso"
+              style={{ width: 56, height: 56, alignItems: 'center', justifyContent: 'center' }}>
+              <Ionicons name="close" size={28} color={C.okDark} />
+            </Pressable>
+          </View>
+        )}
         <Text style={{ fontSize: 22, fontWeight: '800', color: C.ink, margin: 20, marginBottom: 12 }}>
           {eHoje ? 'Remédios de hoje' : `Remédios de ${rotuloDia}`}</Text>
         {loading && <ActivityIndicator size="large" color={C.primary} style={{ marginBottom: 16 }} />}
@@ -104,7 +118,10 @@ export default function Home({ meds, dia, onSelectDay, user, go, onTake, loading
         )}
         <View style={{ paddingHorizontal: 20 }}>
           {meds.map((m) => (
-            <Card key={m.id} style={m.done ? { borderColor: C.ok } : null}>
+            // Tocar no card abre as opções. accessible={false}: o leitor de tela continua
+            // vendo os botões de dentro (JÁ TOMEI, OUVIR e Opções) separadamente.
+            <Pressable key={m.id} onPress={() => abrirOpcoes(m)} accessible={false}>
+            <Card style={m.done ? { borderColor: C.ok } : null}>
               <View style={{ flexDirection: 'row', gap: 14 }}>
                 <View style={{ backgroundColor: m.done ? C.okBg : C.primaryBg, borderRadius: 14, paddingHorizontal: 12, justifyContent: 'center', alignSelf: 'flex-start', minHeight: 56 }}>
                   <Text style={{ fontSize: 22, fontWeight: '800', color: m.done ? C.okDark : C.primary }}>{m.time}</Text>
@@ -113,6 +130,10 @@ export default function Home({ meds, dia, onSelectDay, user, go, onTake, loading
                   <Text style={{ fontSize: 20, fontWeight: '800', color: C.ink }}>{m.name}</Text>
                   <Text style={{ fontSize: 17, color: C.muted, marginTop: 2 }}>{m.dose}</Text>
                 </View>
+                <Pressable onPress={() => abrirOpcoes(m)} accessibilityRole="button" accessibilityLabel="Opções do remédio"
+                  style={{ width: 56, height: 56, marginTop: -8, marginRight: -8, alignItems: 'center', justifyContent: 'center', borderRadius: 28 }}>
+                  <Ionicons name="ellipsis-vertical" size={28} color={C.ink} />
+                </Pressable>
               </View>
               <View style={{ flexDirection: 'row', gap: 8, marginVertical: 12 }}>
                 <Ionicons name="information-circle-outline" size={22} color={C.muted} />
@@ -123,9 +144,14 @@ export default function Home({ meds, dia, onSelectDay, user, go, onTake, loading
                 <Btn label="OUVIR" icon="volume-high" variant="soft" onPress={() => speak(m)} style={{ flex: 1 }} />
               </View>
             </Card>
+            </Pressable>
           ))}
         </View>
       </ScrollView>
+      {opcoes && (
+        <OpcoesRemedio med={opcoes} onClose={() => setOpcoes(null)}
+          onEdit={(m) => { setOpcoes(null); onEdit(m); }} onDelete={onDelete} />
+      )}
       <Pressable onPress={() => go('add')} accessibilityRole="button" accessibilityLabel="Novo Remédio"
         style={{ position: 'absolute', right: 20, bottom: 16, minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: C.primary, borderRadius: 28, paddingHorizontal: 24, elevation: 6, shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } }}>
         <Ionicons name="add" size={28} color="#fff" /><Text style={{ color: '#fff', fontSize: 18, fontWeight: '800' }}>Novo Remédio</Text>

@@ -23,6 +23,8 @@ Datas: o app envia a data de hoje do aparelho em `?data=yyyy-MM-dd`. Se não vie
 | `PUT /api/usuarios/me` | `{nome, idade}` (nome obrigatório, idade de 1 a 120) | `usuario` atualizado |
 | `GET /api/medicamentos?data=2026-11-21` | – | `[medicamento]` só dos agendados para essa data, em ordem de horário (`tomado` = tomou nessa data) |
 | `POST /api/medicamentos` | `{nome, dose, horario:"HH:mm", orientacao, diasSemana:["SEG","QUA"]}` | status 201 e o `medicamento` criado (`tomado:false`, `dataInicio` = hoje) |
+| `PUT /api/medicamentos/{id}` | o mesmo corpo do POST | o `medicamento` atualizado (`tomado` = de hoje). `dataInicio` não muda |
+| `DELETE /api/medicamentos/{id}` | – | 204 sem corpo (veja "Exclusão" abaixo) |
 | `POST /api/medicamentos/{id}/tomar?data=2026-11-21` | – | o `medicamento` com `tomado:true`. Só aceita a data de hoje |
 | `GET /api/historico?mes=2026-11&data=2026-11-21` | – | `{diasSeguidos, adesao, dias:[{dia:1, status:"TOMOU"\|"FALHOU"}]}` (só dias antes de `data`) |
 
@@ -37,6 +39,16 @@ Datas: o app envia a data de hoje do aparelho em `?data=yyyy-MM-dd`. Se não vie
 - Histórico: um dia é `TOMOU` quando todos os remédios agendados *naquele dia* foram tomados.
   Dias sem remédio agendado não aparecem em `dias` e não quebram a sequência.
 - "Hoje" no servidor é calculado no fuso **America/Fortaleza** (UTC-3, mesmo horário de Sergipe).
+
+## Edição e exclusão
+- PUT, DELETE e tomar só funcionam para remédio **do usuário logado e ainda não encerrado**;
+  senão 404 `"Remédio não encontrado."` (não revela remédio de outra pessoa).
+- **Exclusão que preserva o histórico:** remédio nunca tomado é apagado de vez;
+  remédio com tomadas é encerrado com `dataFim = ontem` (fuso America/Fortaleza): some de hoje em diante,
+  mas os dias passados continuam no histórico.
+- **Limitação da edição (MVP):** mudar o horário vale daqui para a frente e não afeta o histórico.
+  Mudar os **dias da semana recalcula também os dias passados** do histórico (ex.: incluir o sábado faz
+  sábados anteriores contarem como esperados). O app avisa isso na tela de edição.
 | `POST /api/assistente/perguntar` | `{pergunta}` | `{resposta}` (o Spring chama a LLM; a chave da API fica só no servidor) |
 
 ## CORS (obrigatório para o front Web em localhost:8081)

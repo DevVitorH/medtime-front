@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, ScrollView, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { C } from '../theme';
-import { Btn, Card, Field, Header } from './components';
+import { Btn, Card, Field, Header, s } from './components';
 import RelogioPicker from './RelogioPicker';
 import DiasSemana, { TODOS_OS_DIAS, resumoDias } from './DiasSemana';
 
@@ -12,6 +12,74 @@ const CAMPOS = [
   { k: 'name', label: '1. Nome do Remédio', ph: 'Ex: Losartana' },
   { k: 'dose', label: '2. Dose', ph: 'Ex: 50mg, 1 comprimido' },
 ];
+
+// Mesmas regras no cadastro e na edição. Devolve a mensagem de erro ou ''.
+const validar = (v) => (!v.name.trim() ? 'Preencha o nome do remédio.'
+  : !v.dose.trim() ? 'Preencha a dose.'
+    : v.days.length === 0 ? 'Escolha pelo menos um dia.' : '');
+const textoResumo = (v) => `${v.name.trim()}, ${v.dose.trim()}, ${v.time}, ${resumoDias(v.days)}`;
+
+const BotaoVoltar = ({ onPress }) => (
+  <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel="Voltar" style={{ width: 56, height: 56, alignItems: 'center', justifyContent: 'center' }}>
+    <Ionicons name="arrow-back" size={30} color={C.ink} />
+  </Pressable>
+);
+const Resumo = ({ texto }) => (
+  <Card style={{ marginTop: 20, borderColor: C.primary, borderWidth: 2, backgroundColor: C.primaryBg }}>
+    <Text style={{ fontSize: 16, color: C.muted }}>Resumo</Text>
+    <Text style={{ fontSize: 20, fontWeight: '800', color: C.ink }}>{texto}</Text>
+  </Card>
+);
+
+/** Edição: todos os campos numa tela só, já preenchidos. */
+export function EditarRemedio({ inicial, onBack, onSave }) {
+  const [v, setV] = useState({ name: inicial.name, dose: inicial.dose, time: inicial.time,
+    days: inicial.days.length ? inicial.days : TODOS_OS_DIAS });
+  const [mudandoHora, setMudandoHora] = useState(false);
+  const [msg, setMsg] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const salvar = async () => {
+    if (mudandoHora) return setMsg('Toque em CONFIRMAR HORÁRIO antes de salvar.');
+    const erro = validar(v);
+    if (erro) return setMsg(erro);
+    setMsg(''); setSaving(true);
+    try { await onSave({ name: v.name.trim(), dose: v.dose.trim(), time: v.time, days: v.days, note: inicial.note }); }
+    catch (e) { setMsg(e.message); setSaving(false); } // o botão continua lá para tentar de novo
+  };
+
+  return (
+    <View style={{ flex: 1 }}>
+      <Header title="Editar Remédio" left={<BotaoVoltar onPress={onBack} />} />
+      <ScrollView contentContainerStyle={{ padding: 20 }} keyboardShouldPersistTaps="handled">
+        <Field label="Nome do Remédio" placeholder="Ex: Losartana" value={v.name} onChangeText={(name) => setV({ ...v, name })} />
+        <Field label="Dose" placeholder="Ex: 50mg, 1 comprimido" value={v.dose} onChangeText={(dose) => setV({ ...v, dose })} />
+
+        <Text style={s.label}>Horário</Text>
+        {mudandoHora ? (
+          <RelogioPicker valor={v.time} onConfirmar={(time) => { setV({ ...v, time }); setMudandoHora(false); setMsg(''); }} />
+        ) : (
+          <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+            <Text style={{ fontSize: 40, fontWeight: '800', color: C.primary }} accessibilityLabel={`Horário ${v.time}`}>{v.time}</Text>
+            <Btn label="MUDAR HORÁRIO" icon="time-outline" variant="soft" onPress={() => setMudandoHora(true)} style={{ flex: 1 }} />
+          </Card>
+        )}
+
+        <Text style={[s.label, { marginTop: 20 }]}>Dias da semana</Text>
+        <DiasSemana valor={v.days} onChange={(days) => { setV({ ...v, days }); setMsg(''); }} />
+        <Text style={{ fontSize: 16, color: C.muted, marginTop: 12 }}>
+          Mudar os dias também muda o histórico dos dias anteriores.</Text>
+        {v.days.length > 0 && <Resumo texto={textoResumo(v)} />}
+
+        {!!msg && <Text accessibilityLiveRegion="polite" style={{ fontSize: 17, color: C.redDark, marginVertical: 12 }}>{msg}</Text>}
+        <View style={{ flexDirection: 'row', gap: 12, marginTop: 12 }}>
+          <Btn label="CANCELAR" variant="soft" onPress={onBack} style={{ flex: 1 }} disabled={saving} />
+          <Btn label={saving ? 'SALVANDO...' : 'SALVAR ALTERAÇÕES'} onPress={salvar} disabled={saving} style={{ flex: 2 }} />
+        </View>
+      </ScrollView>
+    </View>
+  );
+}
 
 export default function AddMed({ onBack, onSave }) {
   const [step, setStep] = useState(0);
@@ -27,12 +95,12 @@ export default function AddMed({ onBack, onSave }) {
   };
   const confirmarHorario = (time) => { setV({ ...v, time }); setMsg(''); setStep(3); };
   const salvar = async () => {
-    if (v.days.length === 0) return setMsg('Escolha pelo menos um dia.');
+    const erro = validar(v);
+    if (erro) return setMsg(erro);
     setMsg(''); setSaving(true);
     try { await onSave({ name: v.name.trim(), dose: v.dose.trim(), time: v.time, days: v.days, note: 'Siga a orientação do seu médico' }); }
     catch (e) { setMsg(e.message); setSaving(false); }
   };
-  const resumo = `${v.name.trim()}, ${v.dose.trim()}, ${v.time}, ${resumoDias(v.days)}`;
   const AI = ({ icon, title, sub }) => (
     <Pressable onPress={() => setMsg('Este recurso de IA será conectado aqui.')} accessibilityRole="button" accessibilityLabel={title}>
       <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 16, borderColor: C.primary }}>
@@ -48,10 +116,7 @@ export default function AddMed({ onBack, onSave }) {
   );
   return (
     <View style={{ flex: 1 }}>
-      <Header title="Novo Remédio" left={
-        <Pressable onPress={onBack} accessibilityRole="button" accessibilityLabel="Voltar" style={{ width: 56, height: 56, alignItems: 'center', justifyContent: 'center' }}>
-          <Ionicons name="arrow-back" size={30} color={C.ink} />
-        </Pressable>} />
+      <Header title="Novo Remédio" left={<BotaoVoltar onPress={onBack} />} />
       <ScrollView contentContainerStyle={{ padding: 20 }} keyboardShouldPersistTaps="handled">
         <Text style={{ fontSize: 22, fontWeight: '800', color: C.ink, textAlign: 'center', marginBottom: 16 }}>Formas de cadastrar:</Text>
         <AI icon="camera" title="Tirar foto da caixa" sub="Nossa IA lê o nome e a dosagem automaticamente" />
@@ -85,10 +150,7 @@ export default function AddMed({ onBack, onSave }) {
             <Text style={{ fontSize: 20, fontWeight: '700', color: C.ink, marginBottom: 12 }}>4. Em quais dias?</Text>
             <DiasSemana valor={v.days} onChange={(days) => { setV({ ...v, days }); setMsg(''); }} />
             {v.days.length > 0 && (
-              <Card style={{ marginTop: 20, borderColor: C.primary, borderWidth: 2, backgroundColor: C.primaryBg }}>
-                <Text style={{ fontSize: 16, color: C.muted }}>Resumo</Text>
-                <Text style={{ fontSize: 20, fontWeight: '800', color: C.ink }}>{resumo}</Text>
-              </Card>
+              <Resumo texto={textoResumo(v)} />
             )}
           </>
         )}

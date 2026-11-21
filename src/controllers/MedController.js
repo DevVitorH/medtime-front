@@ -10,6 +10,7 @@ export function useMedController(enabled) {
   const [meds, setMeds] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [aviso, setAviso] = useState(''); // mensagem de sucesso (ex.: "Remédio excluído.")
 
   // A API devolve só os remédios agendados para o dia pedido.
   const carregar = useCallback(async () => {
@@ -20,7 +21,8 @@ export function useMedController(enabled) {
 
   useEffect(() => { if (enabled) carregar(); else setMeds([]); }, [enabled, carregar]);
 
-  const selecionarDia = (d) => setDia(d);
+  const selecionarDia = (d) => { setAviso(''); setDia(d); };
+  const limparAviso = () => setAviso('');
 
   // Só é possível marcar o remédio de hoje.
   const tomar = async (id) => {
@@ -36,5 +38,16 @@ export function useMedController(enabled) {
     await api.post('/api/medicamentos', fromMedicamento(m));
     await carregar();
   };
-  return { dia, meds, loading, error, carregar, selecionarDia, tomar, adicionar };
+  // editar e excluir também lançam o erro: a tela mostra a mensagem e o botão de tentar de novo.
+  const editar = async (id, m) => {
+    await api.put(`/api/medicamentos/${id}`, fromMedicamento(m));
+    setAviso('Alterações salvas.');
+    await carregar();
+  };
+  const excluir = async (id) => {
+    await api.del(`/api/medicamentos/${id}`);
+    setAviso('Remédio excluído.');
+    await carregar();
+  };
+  return { dia, meds, loading, error, aviso, carregar, selecionarDia, limparAviso, tomar, adicionar, editar, excluir };
 }

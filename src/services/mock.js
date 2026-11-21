@@ -1,5 +1,5 @@
 // Servidor falso para demonstração: mesmas rotas e JSON do contrato em docs/API.md.
-import { deISO, hoje } from '../config';
+import { dataISO, deISO, hoje } from '../config';
 
 const TODOS = ['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SAB', 'DOM'];
 const SIGLA_JS = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SAB']; // índice = Date.getDay()
@@ -9,8 +9,16 @@ let meds = [
   { id: 3, nome: 'Metformina', dose: '850mg - 1 comprimido', horario: '20:00', orientacao: 'Tomar durante o jantar', diasSemana: TODOS, dataInicio: '2020-01-01' },
 ];
 const tomadas = new Set([`1|${hoje()}`]); // "idDoRemedio|yyyy-MM-dd"
-// Mesma regra da API (Medicamento.agendadoEm): dia da semana marcado e data a partir do início.
-const agendadoEm = (m, data) => m.diasSemana.includes(SIGLA_JS[deISO(data).getDay()]) && m.dataInicio <= data;
+// Mesma regra da API (Medicamento.agendadoEm): dia marcado, data a partir do início e até o fim (se houver).
+const agendadoEm = (m, data) => m.diasSemana.includes(SIGLA_JS[deISO(data).getDay()])
+  && m.dataInicio <= data && (!m.dataFim || data <= m.dataFim);
+// Como a API: remédio existente e ainda não encerrado; senão 404.
+const buscar = (id) => {
+  const m = meds.find((x) => x.id === id && (!x.dataFim || x.dataFim >= hoje()));
+  if (!m) erro(404, 'Remédio não encontrado.');
+  return m;
+};
+const ontem = () => { const d = deISO(hoje()); d.setDate(d.getDate() - 1); return dataISO(d); };
 const medRes = (m, data) => ({ ...m, tomado: tomadas.has(`${m.id}|${data}`) });
 const dataDaRota = (path) => (path.match(/data=(\d{4}-\d{2}-\d{2})/) || [])[1] || hoje();
 const falhas = [5, 12];
@@ -73,12 +81,25 @@ export async function mock(method, path, body, token) {
     const lista = meds.filter((m) => agendadoEm(m, data)).sort((a, b) => a.horario.localeCompare(b.horario));
     return wait(lista.map((m) => medRes(m, data)));
   }
+  const um = path.match(/^\/api\/medicamentos\/(\d+)$/);
+  if (um && method === 'PUT') {
+    const m = buscar(Number(um[1]));
+    if (!body.diasSemana || body.diasSemana.length === 0) erro(400, 'Escolha pelo menos um dia.');
+    Object.assign(m, { nome: body.nome, dose: body.dose, horario: body.horario, orientacao: body.orientacao, diasSemana: body.diasSemana });
+    return wait(medRes(m, hoje()));
+  }
+  if (um && method === 'DELETE') {
+    const m = buscar(Number(um[1]));
+    const temTomadas = [...tomadas].some((k) => k.startsWith(`${m.id}|`));
+    if (temTomadas) m.dataFim = ontem();          // encerra: some de hoje em diante
+    else meds = meds.filter((x) => x.id !== m.id); // nunca tomado: apaga de vez
+    return wait(null);
+  }
   const t = path.match(/^\/api\/medicamentos\/(\d+)\/tomar(\?.*)?$/);
   if (t) {
     const data = dataDaRota(path);
     if (data !== hoje()) erro(400, 'Só é possível marcar o remédio de hoje.');
-    const m = meds.find((x) => x.id === Number(t[1]));
-    if (!m) erro(404, 'Remédio não encontrado.');
+    const m = buscar(Number(t[1]));
     if (!agendadoEm(m, data)) erro(400, 'Este remédio não está agendado para hoje.');
     tomadas.add(`${m.id}|${data}`);
     return wait(medRes(m, data));
