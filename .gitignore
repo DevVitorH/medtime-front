@@ -30,9 +30,25 @@ yarn-error.*
 .DS_Store
 *.pem
 
-# local env files
+# local env files (nunca versionar: podem ter URLs e chaves)
 .env
-.env*.local
+.env.*
+!.env.example
+
+# IDEs
+.vscode/
+.idea/
+
+# Windows
+Thumbs.db
+desktop.ini
+
+# Logs e testes
+*.log
+coverage/
+
+# Configuração local do Claude Code (a compartilhada é .claude/settings.json)
+.claude/settings.local.json
 
 # typescript
 *.tsbuildinfo
