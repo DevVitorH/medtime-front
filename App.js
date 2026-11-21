@@ -13,10 +13,12 @@ import AddMed, { EditarRemedio } from './src/views/AddMed';
 import History from './src/views/History';
 import Assistant from './src/views/Assistant';
 import Profile from './src/views/Profile';
+import ResumoDependente from './src/views/ResumoDependente';
 
 export default function App() {
   const [screen, setScreen] = useState('home');
   const [editando, setEditando] = useState(null); // remédio aberto na tela de edição
+  const [acompanhando, setAcompanhando] = useState(null); // pessoa aberta na tela do supervisor
   const auth = useAuthController();
   const m = useMedController(!!auth.user);
   const entrar = async (email, senha) => { if (await auth.entrar(email, senha)) setScreen('home'); };
@@ -55,7 +57,13 @@ export default function App() {
           )}
           {logged && screen === 'history' && <History meds={m.meds} />}
           {logged && screen === 'assistant' && <Assistant />}
-          {logged && screen === 'profile' && <Profile user={auth.user} onSave={auth.salvarPerfil} onLogout={sair} />}
+          {logged && screen === 'profile' && (
+            <Profile user={auth.user} onSave={auth.salvarPerfil} onLogout={sair}
+              onOpenDependent={(p) => { setAcompanhando(p); setScreen('dependente'); }} />
+          )}
+          {logged && screen === 'dependente' && acompanhando && (
+            <ResumoDependente pessoa={acompanhando} onBack={() => setScreen('profile')} />
+          )}
           {showNav && <BottomNav current={screen} onChange={ir} />}
         </View>
       </SafeAreaView>

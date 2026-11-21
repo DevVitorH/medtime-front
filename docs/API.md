@@ -13,7 +13,7 @@ Datas: o app envia a data de hoje do aparelho em `?data=yyyy-MM-dd`. Se não vie
 - 5 senhas erradas seguidas: bloqueio de 15 minutos, **429** `{"mensagem":"Muitas tentativas. Tente de novo em alguns minutos."}`.
 
 `AuthRes` = `{token, expiraEm:"2026-11-22T14:00:00Z", usuario}`
-`usuario` = `{id, nome, idade, email, supervisor:{nome, parentesco, online}|null}` (nome e idade podem ser `null` logo após o cadastro)
+`usuario` = `{id, nome, idade, email}` (nome e idade podem ser `null` logo após o cadastro)
 
 | Método e rota | Corpo enviado | Resposta |
 |---|---|---|
@@ -29,7 +29,18 @@ Datas: o app envia a data de hoje do aparelho em `?data=yyyy-MM-dd`. Se não vie
 | `GET /api/historico?mes=2026-11&data=2026-11-21` | – | `{diasSeguidos, adesao, dias:[{dia:1, status:"TOMOU"\|"FALHOU"}]}` (só dias antes de `data`) |
 
 ## Remédios e agenda
-`medicamento` = `{id, nome, dose, horario:"09:00", orientacao, tomado, diasSemana:["SEG","TER","QUA","QUI","SEX"], dataInicio:"2026-11-21"}`
+`medicamento` = `{id, nome, dose, horario:"09:00", orientacao, tomado, diasSemana:["SEG","TER","QUA","QUI","SEX"], dataInicio:"2026-11-21", status:"PENDENTE", tomadoEm:null}`
+- `status` é **calculado no servidor** (fuso America/Fortaleza) para a data pedida, com tolerância de
+  **30 minutos** (`MedicamentoService.TOLERANCIA_MIN`). Limite = `horario + 30 min`:
+  - `PENDENTE`: não tomou e agora ainda não passou do limite (dia futuro é sempre PENDENTE);
+  - `ATRASADO`: não tomou e agora já passou do limite (dia passado sem tomada também vem ATRASADO;
+    a Home mostra "Não tomado" nos dias passados);
+  - `TOMADO`: tomou até o limite (tomada antiga sem hora gravada também conta como TOMADO);
+  - `TOMADO_COM_ATRASO`: tomou depois do limite (ex.: horário 11:00, tomou 12:30).
+- `tomadoEm`: hora da tomada naquela data, `"HH:mm"`, ou `null`. É gravada pelo servidor no `tomar`
+  (o cliente nunca envia). `tomado` continua existindo (`true` nos dois status TOMADO).
+- O status não é guardado no banco (é derivado de `tomada`). Histórico: TOMADO_COM_ATRASO conta como tomado.
+- O app só refaz a virada PENDENTE → ATRASADO na tela de hoje a cada minuto, sem chamar a API de novo.
 - `diasSemana`: siglas `SEG TER QUA QUI SEX SAB DOM`, obrigatório com pelo menos 1 (400 `"Escolha pelo menos um dia."`).
   A resposta vem sempre na ordem SEG → DOM.
 - Um remédio está **agendado** numa data quando o dia da semana está marcado, `dataInicio <= data` e
@@ -50,6 +61,30 @@ Datas: o app envia a data de hoje do aparelho em `?data=yyyy-MM-dd`. Se não vie
   Mudar os **dias da semana recalcula também os dias passados** do histórico (ex.: incluir o sábado faz
   sábados anteriores contarem como esperados). O app avisa isso na tela de edição.
 | `POST /api/assistente/perguntar` | `{pergunta}` | `{resposta}` (o Spring chama a LLM; a chave da API fica só no servidor) |
+
+## Supervisão (um usuário acompanha outro)
+O **dependente** (quem será acompanhado) gera um código; o **supervisor** digita o código e o vínculo é criado.
+Gerar o código é o consentimento (LGPD): "Quem usar este código poderá ver seus remédios e seu progresso."
+
+`pessoa` = `{vinculoId, usuarioId, nome}` (só o nome; `nome` pode ser `null` se a pessoa não completou o perfil)
+
+| Método e rota | Corpo enviado | Resposta |
+|---|---|---|
+| `POST /api/vinculos/codigo` | – | 201 `{codigo:"K7M2QX", expiraEm}`. Gerar um novo invalida o anterior ainda não usado |
+| `POST /api/vinculos/conectar` | `{codigo}` (aceita minúsculas e espaços) | `pessoa` (o dependente). Quem chamou vira supervisor dele |
+| `GET /api/vinculos` | – | `{supervisores:[pessoa], dependentes:[pessoa]}` |
+| `DELETE /api/vinculos/{id}` | – | 204. Qualquer um dos dois lados pode remover; senão 404 `"Vínculo não encontrado."` |
+| `GET /api/dependentes/{id}/resumo?data=2026-11-21` | – | `{nome, data, medicamentos:[medicamento], diasSeguidos, adesao}` |
+
+- Código: 6 caracteres de `ABCDEFGHJKLMNPQRSTUVWXYZ23456789` (sem O, 0, I e 1), gerado com `SecureRandom`,
+  **uso único**, válido por **30 minutos**. O código nunca é registrado em log.
+- Erros do `conectar` (400): `"Código inválido. Confira as letras e os números."`, `"Este código expirou. Peça um novo."`,
+  `"Este código já foi usado. Peça um novo."`, `"Você não pode ser supervisor de si mesmo."`; 409 `"Vocês já estão conectados."`.
+- **5 códigos errados** (inválido, expirado ou já usado) em 15 minutos → bloqueio de **15 minutos**, 429
+  `"Muitas tentativas. Tente de novo em alguns minutos."`. Um código certo zera a contagem.
+- **Resumo = dados de saúde:** só para o **supervisor** com vínculo com aquele dependente; senão **403**
+  `"Você não acompanha esta pessoa."` (também quando o id não existe, para não revelar quem tem conta).
+  O dependente não vê os remédios do supervisor.
 
 ## CORS (obrigatório para o front Web em localhost:8081)
 Já configurado em `medtime-back/src/main/java/br/com/viverbem/config/WebConfig.java`

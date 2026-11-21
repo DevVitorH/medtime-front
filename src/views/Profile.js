@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, Pressable, Linking } from 'react-native';
+import { View, Text, ScrollView, Pressable, Linking, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { C } from '../theme';
 import { Btn, Card, Field, Header } from './components';
+import { useVinculoController } from '../controllers/VinculoController';
+import { ConectarComCodigo, GerarCodigo, LinhaPessoa } from './Supervisao';
+import Confirmacao from './Confirmacao';
 
 const Row = ({ icon, label, value }) => (
   <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
@@ -14,14 +17,20 @@ const Row = ({ icon, label, value }) => (
     </View>
   </Card>
 );
+const Titulo = ({ children }) => (
+  <Text accessibilityRole="header" style={{ fontSize: 22, fontWeight: '800', color: C.ink, marginTop: 8, marginBottom: 12 }}>{children}</Text>
+);
 
-export default function Profile({ user, onSave, onLogout }) {
-  const sup = user.supervisor;
+export default function Profile({ user, onSave, onLogout, onOpenDependent }) {
+  const v = useVinculoController();
+  const { supervisors, dependents } = v.vinculos;
+  const [remover, setRemover] = useState(null); // { pessoa, papel: 'supervisor' | 'dependente' }
   const [nome, setNome] = useState(user.name);
   const [idade, setIdade] = useState(user.age);
   const [msg, setMsg] = useState({ texto: '', ok: false });
   const [salvando, setSalvando] = useState(false);
   const incompleto = !user.name || !user.age;
+  const nomesSupervisores = supervisors.map((p) => p.name).join(', ');
 
   const salvar = async () => {
     const n = Number(idade);
@@ -35,7 +44,7 @@ export default function Profile({ user, onSave, onLogout }) {
 
   return (
     <View style={{ flex: 1 }}>
-      <Header title="Meu Perfil" sub="Gerencie seus dados e contatos de emergência" />
+      <Header title="Meu Perfil" sub="Seus dados, supervisores e contatos de emergência" />
       <ScrollView contentContainerStyle={{ padding: 20 }} keyboardShouldPersistTaps="handled">
         {incompleto && (
           <Card style={{ borderColor: C.primary, borderWidth: 2, backgroundColor: C.primaryBg, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
@@ -47,21 +56,47 @@ export default function Profile({ user, onSave, onLogout }) {
           </Card>
         )}
 
-        <Card style={{ borderColor: C.primary, borderWidth: 2, flexDirection: 'row', alignItems: 'center', gap: 16 }}>
-          <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: C.okDark, alignItems: 'center', justifyContent: 'center' }}>
-            <Ionicons name="link" size={28} color="#fff" /></View>
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 20, fontWeight: '800', color: C.ink }}>Supervisor Conectado</Text>
-            <Text style={{ fontSize: 18, color: C.muted }}>{sup ? `${sup.nome} (${sup.parentesco})` : 'Nenhum supervisor ainda'}</Text>
+        {/* Supervisores reais do usuário */}
+        <Card style={{ borderColor: C.primary, borderWidth: 2 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+            <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: C.okDark, alignItems: 'center', justifyContent: 'center' }}>
+              <Ionicons name="shield-checkmark" size={26} color="#fff" /></View>
+            <Text style={{ flex: 1, fontSize: 20, fontWeight: '800', color: C.ink }}>Supervisor Conectado</Text>
           </View>
-          <View style={{ backgroundColor: C.okBg, borderRadius: 16, paddingHorizontal: 12, paddingVertical: 6 }}>
-            <Text style={{ fontSize: 16, fontWeight: '800', color: C.okDark }}>{sup && sup.online ? 'ONLINE' : 'OFFLINE'}</Text></View>
+          {v.loading && <ActivityIndicator size="large" color={C.primary} accessibilityLabel="Carregando" />}
+          {!!v.error && (
+            <View style={{ gap: 12 }}>
+              <Text style={{ fontSize: 17, color: C.redDark }}>{v.error}</Text>
+              <Btn label="TENTAR DE NOVO" variant="soft" onPress={v.carregar} />
+            </View>
+          )}
+          {!v.loading && !v.error && supervisors.length === 0 && (
+            <Text style={{ fontSize: 18, color: C.muted }}>Nenhum supervisor ainda</Text>
+          )}
+          {supervisors.map((p) => (
+            <LinhaPessoa key={p.vinculoId} pessoa={p} onRemover={(pessoa) => setRemover({ pessoa, papel: 'supervisor' })} />
+          ))}
         </Card>
 
-        <Text style={{ fontSize: 22, fontWeight: '800', color: C.ink, marginVertical: 12 }}>Dados Pessoais</Text>
+        <Titulo>Supervisão</Titulo>
+        <GerarCodigo onGerar={v.gerarCodigo} />
+        <ConectarComCodigo onConectar={v.conectar} />
+
+        <Titulo>Pessoas que eu acompanho</Titulo>
+        <Card>
+          {!v.loading && !v.error && dependents.length === 0 && (
+            <Text style={{ fontSize: 18, color: C.muted }}>Você ainda não acompanha ninguém.</Text>
+          )}
+          {dependents.map((p) => (
+            <LinhaPessoa key={p.vinculoId} pessoa={p} onAbrir={onOpenDependent}
+              onRemover={(pessoa) => setRemover({ pessoa, papel: 'dependente' })} />
+          ))}
+        </Card>
+
+        <Titulo>Dados Pessoais</Titulo>
         <Field label="Como gosta de ser chamado?" placeholder="Seu nome" value={nome} onChangeText={setNome} maxLength={100} />
         <Field label="Sua idade" placeholder="Ex: 65" keyboardType="number-pad" inputMode="numeric" maxLength={3}
-          value={idade} onChangeText={(v) => setIdade(v.replace(/\D/g, ''))} />
+          value={idade} onChangeText={(t) => setIdade(t.replace(/\D/g, ''))} />
         <Row icon="mail" label="E-mail (não pode ser alterado)" value={user.email} />
         <Btn label={salvando ? 'SALVANDO...' : 'SALVAR'} icon="save" onPress={salvar} disabled={salvando} />
         {!!msg.texto && (
@@ -74,14 +109,27 @@ export default function Profile({ user, onSave, onLogout }) {
             <Text style={{ fontSize: 22, fontWeight: '800', color: C.redDark }}>Botão de Pânico</Text>
           </View>
           <Btn label="LIGAR PARA EMERGÊNCIA" icon="call" variant="danger" onPress={() => Linking.openURL('tel:192')} style={{ minHeight: 64 }} />
-          <Text style={{ fontSize: 16, color: C.muted, marginTop: 12, textAlign: 'center' }}>
-            {`Sua localização será enviada automaticamente para ${sup ? sup.nome : 'seu supervisor'}.`}</Text>
+          <Text style={{ fontSize: 16, color: C.ink, marginTop: 12, textAlign: 'center' }}>
+            {supervisors.length > 0
+              ? `Em caso de emergência, ligue 192. Seus supervisores: ${nomesSupervisores}.`
+              : 'Conecte um supervisor para ter alguém de confiança acompanhando você.'}</Text>
         </Card>
 
         <Pressable onPress={onLogout} accessibilityRole="button" style={{ minHeight: 56, alignItems: 'center', justifyContent: 'center', marginTop: 8 }}>
           <Text style={{ fontSize: 18, fontWeight: '700', color: C.primary, textDecorationLine: 'underline' }}>Sair da Conta</Text>
         </Pressable>
       </ScrollView>
+
+      {remover && (
+        <Confirmacao
+          titulo={remover.papel === 'supervisor' ? `Remover ${remover.pessoa.name}?` : `Parar de acompanhar ${remover.pessoa.name}?`}
+          texto={remover.papel === 'supervisor'
+            ? 'Esta pessoa deixará de ver seus remédios e seu progresso.'
+            : 'Você deixará de ver os remédios e o progresso desta pessoa.'}
+          rotulo="SIM, REMOVER"
+          onConfirmar={async () => { await v.remover(remover.pessoa.vinculoId); setRemover(null); }}
+          onCancelar={() => setRemover(null)} />
+      )}
     </View>
   );
 }

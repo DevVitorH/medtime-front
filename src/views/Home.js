@@ -6,6 +6,9 @@ import { C } from '../theme';
 import { dataISO, deISO, hoje } from '../config';
 import { Btn, Card, MESES, SEMANA, SEMANA_NOME } from './components';
 import OpcoesRemedio from './OpcoesRemedio';
+import StatusBadge, { bordaDoStatus, falaStatus } from './StatusBadge';
+import { statusAgora } from '../models';
+import { useMinuto } from '../controllers/useMinuto';
 
 // Faixa de 7 dias: 3 antes, hoje e 3 depois.
 const faixaDeDias = (agora) => [-3, -2, -1, 0, 1, 2, 3].map((dif) => {
@@ -34,17 +37,27 @@ export default function Home({ meds, dia, onSelectDay, user, go, onTake, loading
   const resumoTopo = eHoje ? `Você já tomou ${done} de ${meds.length} remédios de hoje`
     : passado ? `Você tomou ${done} de ${meds.length} remédios em ${rotuloDia}`
       : `${meds.length} ${meds.length === 1 ? 'remédio agendado' : 'remédios agendados'} para ${rotuloDia}`;
-  const speak = (m) => Speech.speak(`${m.name}. ${m.dose}. ${m.note}. Horário: ${m.time}.`, { language: 'pt-BR' });
+  // Reavalia a cada minuto: um remédio PENDENTE vira ATRASADO quando passa do horário + 30 min.
+  const agora = useMinuto();
+  const statusDe = (m) => statusAgora(m, eHoje, agora);
+  const speak = (m) => Speech.speak(`${m.name}. ${m.dose}. ${m.note}. ${falaStatus(m, statusDe(m))}.`, { language: 'pt-BR' });
+
+  // Borda do cartão: hoje e dias passados com tomada seguem o status; o resto fica com a borda normal.
+  const bordaDoCartao = (m) => {
+    const st = statusDe(m);
+    if (m.done || (eHoje && st === 'ATRASADO')) return { borderColor: bordaDoStatus(st), borderWidth: 2 };
+    return null;
+  };
 
   const acaoOuSituacao = (m) => {
     if (eHoje) {
       return m.done
-        ? <Situacao icone="checkmark-circle" texto="TOMADO" cor={C.okDark} fundo={C.okBg} />
+        ? <StatusBadge med={m} status={statusDe(m)} style={{ flex: 1 }} />
         : <Btn label="JÁ TOMEI" onPress={() => onTake(m.id)} style={{ flex: 1 }} />;
     }
     if (passado) {
       return m.done
-        ? <Situacao icone="checkmark-circle" texto="Tomado" cor={C.okDark} fundo={C.okBg} />
+        ? <StatusBadge med={m} status={statusDe(m)} style={{ flex: 1 }} />
         : <Situacao icone="close-circle" texto="Não tomado" cor={C.redDark} fundo={C.redBg} />;
     }
     return <Situacao icone="time-outline" texto="Agendado" cor={C.primary} fundo={C.primaryBg} />;
@@ -121,7 +134,7 @@ export default function Home({ meds, dia, onSelectDay, user, go, onTake, loading
             // Tocar no card abre as opções. accessible={false}: o leitor de tela continua
             // vendo os botões de dentro (JÁ TOMEI, OUVIR e Opções) separadamente.
             <Pressable key={m.id} onPress={() => abrirOpcoes(m)} accessible={false}>
-            <Card style={m.done ? { borderColor: C.ok } : null}>
+            <Card style={bordaDoCartao(m)}>
               <View style={{ flexDirection: 'row', gap: 14 }}>
                 <View style={{ backgroundColor: m.done ? C.okBg : C.primaryBg, borderRadius: 14, paddingHorizontal: 12, justifyContent: 'center', alignSelf: 'flex-start', minHeight: 56 }}>
                   <Text style={{ fontSize: 22, fontWeight: '800', color: m.done ? C.okDark : C.primary }}>{m.time}</Text>
@@ -139,6 +152,10 @@ export default function Home({ meds, dia, onSelectDay, user, go, onTake, loading
                 <Ionicons name="information-circle-outline" size={22} color={C.muted} />
                 <Text style={{ flex: 1, fontSize: 16, color: C.muted }}>{m.note}</Text>
               </View>
+              {/* Atrasado: o selo fica em cima e o JÁ TOMEI continua ativo embaixo. */}
+              {eHoje && !m.done && statusDe(m) === 'ATRASADO' && (
+                <StatusBadge med={m} status="ATRASADO" style={{ marginBottom: 12 }} />
+              )}
               <View style={{ flexDirection: 'row', gap: 12 }}>
                 {acaoOuSituacao(m)}
                 <Btn label="OUVIR" icon="volume-high" variant="soft" onPress={() => speak(m)} style={{ flex: 1 }} />
