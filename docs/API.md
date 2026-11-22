@@ -1,4 +1,4 @@
-# Contrato da API (Spring Boot) – ViverBem
+# Contrato da API (Spring Boot) – MedTime
 
 Base: `http://<host>:8080`. JSON em UTF-8. Após o login, o front envia `Authorization: Bearer <token>`.
 Erros: status 4xx/5xx com corpo `{ "mensagem": "texto para o usuário" }`.
@@ -60,7 +60,7 @@ Datas: o app envia a data de hoje do aparelho em `?data=yyyy-MM-dd`. Se não vie
 - **Limitação da edição (MVP):** mudar o horário vale daqui para a frente e não afeta o histórico.
   Mudar os **dias da semana recalcula também os dias passados** do histórico (ex.: incluir o sábado faz
   sábados anteriores contarem como esperados). O app avisa isso na tela de edição.
-| `POST /api/assistente/perguntar` | `{pergunta}` | `{resposta}` (o Spring chama a LLM; a chave da API fica só no servidor) |
+| `POST /api/assistente/perguntar` | `{pergunta}` | `{resposta}` (o Spring chama o Google Gemini; a chave fica só no servidor). A resposta termina sempre com "Informação de apoio. Confirme com seu médico ou farmacêutico." Falhas: 503 (sem chave ou limite de uso) e 502 (erro de rede ou resposta vazia), sempre com `{mensagem}` |
 
 ## Supervisão (um usuário acompanha outro)
 O **dependente** (quem será acompanhado) gera um código; o **supervisor** digita o código e o vínculo é criado.

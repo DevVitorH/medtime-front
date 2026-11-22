@@ -2,12 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
-import { C } from '../theme';
-import { Btn, Card } from './components';
+import { C, E, I, R, T, TOQUE } from '../theme';
+import { Btn, Card, s } from './components';
 
 // Blocos de supervisão usados no Perfil.
 
-/** "GERAR CÓDIGO PARA SUPERVISOR": quem será acompanhado mostra o código para a outra pessoa. */
+/** "Gerar código para supervisor": quem será acompanhado mostra o código para a outra pessoa. */
 export function GerarCodigo({ onGerar }) {
   const [codigo, setCodigo] = useState(null); // { code, expiresAt }
   const [agora, setAgora] = useState(Date.now());
@@ -37,28 +37,28 @@ export function GerarCodigo({ onGerar }) {
 
   return (
     <Card>
-      <Text style={{ fontSize: 20, fontWeight: '800', color: C.ink }}>Ser acompanhado</Text>
-      <Text style={{ fontSize: 17, color: C.ink, marginVertical: 8 }}>
+      <Text accessibilityRole="header" style={s.h2}>Ser acompanhado</Text>
+      <Text style={[s.corpo, { marginVertical: E.p }]}>
         Quem usar este código poderá ver seus remédios e seu progresso.</Text>
       {codigo && (
-        <View style={{ alignItems: 'center', marginVertical: 8 }}>
+        <View style={{ alignItems: 'center', marginVertical: E.p }}>
           <Text accessibilityLabel={`Código: ${codigo.code.split('').join(', ')}`}
-            style={{ fontSize: 48, fontWeight: '800', letterSpacing: 8, color: restante > 0 ? C.primary : C.muted }}>{codigo.code}</Text>
-          <Text style={{ fontSize: 18, fontWeight: '700', color: restante > 0 ? C.ink : C.redDark }}>
+            style={{ fontSize: T.codigo, fontWeight: T.semibold, letterSpacing: E.p, color: restante > 0 ? C.primary : C.muted }}>{codigo.code}</Text>
+          <Text style={{ fontSize: T.medio, fontWeight: T.semibold, color: restante > 0 ? C.ink : C.redDark }}>
             {restante > 0 ? `Vale por mais ${mmss}` : 'Código expirado. Gere um novo.'}</Text>
         </View>
       )}
-      {codigo && restante > 0 && <Btn label="COPIAR" icon="copy-outline" variant="soft" onPress={copiar} style={{ marginBottom: 12 }} />}
-      <Btn label={gerando ? 'GERANDO...' : codigo ? 'GERAR NOVO CÓDIGO' : 'GERAR CÓDIGO PARA SUPERVISOR'}
+      {codigo && restante > 0 && <Btn label="Copiar" icon="copy-outline" variant="soft" onPress={copiar} style={{ marginBottom: E.m }} />}
+      <Btn label={gerando ? 'Gerando...' : codigo ? 'Gerar novo código' : 'Gerar código para supervisor'}
         icon="key-outline" onPress={gerar} disabled={gerando} />
       {!!msg.texto && (
-        <Text accessibilityLiveRegion="polite" style={{ fontSize: 17, color: msg.ok ? C.okDark : C.redDark, textAlign: 'center', marginTop: 12 }}>{msg.texto}</Text>
+        <Text accessibilityLiveRegion="polite" style={[msg.ok ? s.sucesso : s.erro, { textAlign: 'center', marginTop: E.m }]}>{msg.texto}</Text>
       )}
     </Card>
   );
 }
 
-/** "CONECTAR COM CÓDIGO": quem vai acompanhar digita o código da outra pessoa. */
+/** "Conectar com código": quem vai acompanhar digita o código da outra pessoa. */
 export function ConectarComCodigo({ onConectar }) {
   const [aberto, setAberto] = useState(false);
   const [codigo, setCodigo] = useState('');
@@ -80,21 +80,21 @@ export function ConectarComCodigo({ onConectar }) {
 
   return (
     <Card>
-      <Text style={{ fontSize: 20, fontWeight: '800', color: C.ink }}>Acompanhar alguém</Text>
-      <Text style={{ fontSize: 17, color: C.ink, marginVertical: 8 }}>Peça o código para a pessoa e digite aqui.</Text>
+      <Text accessibilityRole="header" style={s.h2}>Acompanhar alguém</Text>
+      <Text style={[s.corpo, { marginVertical: E.p }]}>Peça o código para a pessoa e digite aqui.</Text>
       {!aberto ? (
-        <Btn label="CONECTAR COM CÓDIGO" icon="link" variant="soft" onPress={() => setAberto(true)} />
+        <Btn label="Conectar com código" icon="link" variant="soft" onPress={() => setAberto(true)} />
       ) : (
         <>
           <TextInput value={codigo} onChangeText={digitar} autoCapitalize="characters" autoCorrect={false}
             autoComplete="off" maxLength={6} placeholder="ABC234" placeholderTextColor={C.hint}
             accessibilityLabel="Código de 6 letras e números"
-            style={{ minHeight: 72, borderWidth: 2, borderColor: C.border, borderRadius: 14, backgroundColor: '#fff', fontSize: 32, fontWeight: '800', letterSpacing: 8, textAlign: 'center', color: C.ink, marginBottom: 12 }} />
-          <Btn label={enviando ? 'CONECTANDO...' : 'CONECTAR'} icon="link" onPress={conectar} disabled={enviando} />
+            style={{ minHeight: 72, borderWidth: 2, borderColor: C.border, borderRadius: R, backgroundColor: C.card, fontSize: T.numero, fontWeight: T.semibold, letterSpacing: E.p, textAlign: 'center', color: C.ink, marginBottom: E.m }} />
+          <Btn label={enviando ? 'Conectando...' : 'Conectar'} icon="link" onPress={conectar} disabled={enviando} />
         </>
       )}
       {!!msg.texto && (
-        <Text accessibilityLiveRegion="polite" style={{ fontSize: 17, color: msg.ok ? C.okDark : C.redDark, textAlign: 'center', marginTop: 12 }}>{msg.texto}</Text>
+        <Text accessibilityLiveRegion="polite" style={[msg.ok ? s.sucesso : s.erro, { textAlign: 'center', marginTop: E.m }]}>{msg.texto}</Text>
       )}
     </Card>
   );
@@ -103,20 +103,20 @@ export function ConectarComCodigo({ onConectar }) {
 /** Uma pessoa numa lista (supervisor ou dependente). Se onAbrir existir, tocar no nome abre o resumo. */
 export function LinhaPessoa({ pessoa, onAbrir, onRemover }) {
   const nome = (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1, minHeight: 56 }}>
-      <Ionicons name="person-circle" size={40} color={C.primary} />
-      <Text style={{ flex: 1, fontSize: 19, fontWeight: '800', color: C.ink }}>{pessoa.name}</Text>
-      {onAbrir && <Ionicons name="chevron-forward" size={28} color={C.muted} />}
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: E.m, flex: 1, minHeight: TOQUE }}>
+      <Ionicons name="person-circle-outline" size={I.g} color={C.primary} />
+      <Text style={{ flex: 1, fontSize: T.medio, fontWeight: T.semibold, color: C.ink }}>{pessoa.name}</Text>
+      {onAbrir && <Ionicons name="chevron-forward" size={I.m} color={C.muted} />}
     </View>
   );
   return (
-    <View style={{ borderTopWidth: 1, borderTopColor: C.line, paddingVertical: 8, gap: 8 }}>
+    <View style={{ borderTopWidth: 1, borderTopColor: C.line, paddingVertical: E.p, gap: E.p }}>
       {onAbrir ? (
         <Pressable onPress={() => onAbrir(pessoa)} accessibilityRole="button" accessibilityLabel={`Ver resumo de ${pessoa.name}`}>
           {nome}
         </Pressable>
       ) : nome}
-      <Btn label="REMOVER" icon="person-remove-outline" variant="soft" a11y={`Remover ${pessoa.name}`} onPress={() => onRemover(pessoa)} />
+      <Btn label="Remover" icon="person-remove-outline" variant="soft" a11y={`Remover ${pessoa.name}`} onPress={() => onRemover(pessoa)} />
     </View>
   );
 }

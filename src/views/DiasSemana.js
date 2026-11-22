@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { C } from '../theme';
+import { C, E, I, R, T } from '../theme';
 import { Btn } from './components';
 
 // [sigla da API, texto do botão, nome falado]
@@ -25,24 +25,24 @@ export default function DiasSemana({ valor, onChange }) {
   const alternar = (s) => onChange(valor.includes(s) ? valor.filter((x) => x !== s) : [...valor, s]);
   return (
     <View>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 12 }}>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: E.p, marginBottom: E.m }}>
         {DIAS.map(([sigla, texto, nome]) => {
           const on = valor.includes(sigla);
           return (
             <Pressable key={sigla} onPress={() => alternar(sigla)} accessibilityRole="checkbox" accessibilityLabel={nome}
               accessibilityState={{ checked: on }}
-              style={{ width: '22%', minHeight: 72, borderRadius: 16, borderWidth: 2, alignItems: 'center', justifyContent: 'center', gap: 2, backgroundColor: on ? C.primary : '#fff', borderColor: on ? C.primary : C.border }}>
-              <Ionicons name={on ? 'checkmark-circle' : 'ellipse-outline'} size={24} color={on ? '#fff' : C.muted} />
-              <Text style={{ fontSize: 20, fontWeight: '800', color: on ? '#fff' : C.ink }}>{texto}</Text>
+              style={{ width: '22%', minHeight: 72, borderRadius: R, borderWidth: 2, alignItems: 'center', justifyContent: 'center', gap: 2, backgroundColor: on ? C.primary : C.card, borderColor: on ? C.primary : C.border }}>
+              <Ionicons name={on ? 'checkmark-circle' : 'ellipse-outline'} size={I.m} color={on ? C.onPrimary : C.muted} />
+              <Text style={{ fontSize: T.medio, fontWeight: T.semibold, color: on ? C.onPrimary : C.ink }}>{texto}</Text>
             </Pressable>
           );
         })}
       </View>
-      <View style={{ flexDirection: 'row', gap: 12 }}>
+      <View style={{ flexDirection: 'row', gap: E.m }}>
         <Btn label="Todos os dias" variant={mesmos(valor, TODOS_OS_DIAS) ? 'primary' : 'soft'}
-          onPress={() => onChange(TODOS_OS_DIAS)} style={{ flex: 1, paddingHorizontal: 8 }} />
+          onPress={() => onChange(TODOS_OS_DIAS)} style={{ flex: 1, paddingHorizontal: E.p }} />
         <Btn label="Segunda a sexta" variant={mesmos(valor, UTEIS) ? 'primary' : 'soft'}
-          onPress={() => onChange(UTEIS)} style={{ flex: 1, paddingHorizontal: 8 }} />
+          onPress={() => onChange(UTEIS)} style={{ flex: 1, paddingHorizontal: E.p }} />
       </View>
     </View>
   );

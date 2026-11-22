@@ -1,13 +1,13 @@
 import React from 'react';
 import { View, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { C } from '../theme';
+import { C, E, I, R, T, TOQUE } from '../theme';
 import { limiteDoHorario } from '../models';
 
 // Cores de cada status. O status também aparece em texto e ícone (nunca só cor).
 const ESTILO = {
   PENDENTE: { icone: 'time-outline', cor: C.primary, fundo: C.primaryBg, borda: C.line },
-  ATRASADO: { icone: 'alarm', cor: C.redDark, fundo: C.redBg, borda: C.red },
+  ATRASADO: { icone: 'alarm-outline', cor: C.redDark, fundo: C.redBg, borda: C.red },
   TOMADO: { icone: 'checkmark-circle', cor: C.okDark, fundo: C.okBg, borda: C.ok },
   TOMADO_COM_ATRASO: { icone: 'checkmark-circle', cor: C.amberDark, fundo: C.amberBg, borda: C.amber },
 };
@@ -20,10 +20,10 @@ const texto = (m, status, modo) => {
   const hora = m.takenAt ? ` às ${m.takenAt}` : '';
   if (modo === 'home') {
     return {
-      PENDENTE: 'PENDENTE',
-      ATRASADO: 'ATRASADO',
-      TOMADO: 'TOMADO',
-      TOMADO_COM_ATRASO: `TOMADO${hora.toUpperCase()} (ATRASADO)`,
+      PENDENTE: 'Pendente',
+      ATRASADO: 'Atrasado',
+      TOMADO: 'Tomado',
+      TOMADO_COM_ATRASO: `Tomado${hora} (atrasado)`,
     }[status];
   }
   return {
@@ -34,7 +34,7 @@ const texto = (m, status, modo) => {
   }[status];
 };
 
-/** Frase para o leitor de tela e para o botão OUVIR. Ex.: "Remédio das 11:00, tomado às 12:30 com atraso". */
+/** Frase para o leitor de tela e para o botão Ouvir. Ex.: "Remédio das 11:00, tomado às 12:30 com atraso". */
 export const falaStatus = (m, status) => {
   const hora = m.takenAt ? ` às ${m.takenAt}` : '';
   const situacao = {
@@ -51,9 +51,9 @@ export default function StatusBadge({ med, status, modo = 'home', style }) {
   const e = ESTILO[status] || ESTILO.PENDENTE;
   return (
     <View accessible accessibilityLabel={falaStatus(med, status)}
-      style={[{ minHeight: 56, flexDirection: 'row', gap: 8, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 16, backgroundColor: e.fundo, borderWidth: 2, borderColor: e.borda }, style]}>
-      <Ionicons name={e.icone} size={26} color={e.cor} />
-      <Text style={{ flexShrink: 1, fontSize: 18, fontWeight: '800', color: e.cor, textAlign: 'center' }}>{texto(med, status, modo)}</Text>
+      style={[{ minHeight: TOQUE, flexDirection: 'row', gap: E.p, alignItems: 'center', justifyContent: 'center', paddingHorizontal: E.m, paddingVertical: E.p, borderRadius: R, backgroundColor: e.fundo, borderWidth: 1, borderColor: e.borda }, style]}>
+      <Ionicons name={e.icone} size={I.m} color={e.cor} />
+      <Text style={{ flexShrink: 1, fontSize: T.medio, fontWeight: T.semibold, color: e.cor, textAlign: 'center' }}>{texto(med, status, modo)}</Text>
     </View>
   );
 }

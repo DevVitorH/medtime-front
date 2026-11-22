@@ -6,6 +6,7 @@ import { C } from './src/theme';
 import { hoje } from './src/config';
 import { useAuthController } from './src/controllers/AuthController';
 import { useMedController } from './src/controllers/MedController';
+import { useAssistantController } from './src/controllers/AssistantController';
 import { BottomNav } from './src/views/components';
 import Login from './src/views/Login';
 import Home from './src/views/Home';
@@ -21,10 +22,11 @@ export default function App() {
   const [acompanhando, setAcompanhando] = useState(null); // pessoa aberta na tela do supervisor
   const auth = useAuthController();
   const m = useMedController(!!auth.user);
+  const assistente = useAssistantController(); // a conversa fica aqui para não sumir ao trocar de aba
   const entrar = async (email, senha) => { if (await auth.entrar(email, senha)) setScreen('home'); };
   // Conta nova: vai direto ao Perfil para completar nome e idade.
   const cadastrar = async (email, senha) => { if (await auth.cadastrar(email, senha)) setScreen('profile'); };
-  const sair = () => { auth.sair(); setScreen('home'); };
+  const sair = () => { auth.sair(); assistente.limpar(); setScreen('home'); };
   const add = async (med) => { await m.adicionar(med); setScreen('home'); };
   // Editar mantém o dia escolhido na Home (por isso usa setScreen, e não ir).
   const abrirEdicao = (med) => { setEditando(med); setScreen('edit'); };
@@ -40,7 +42,7 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <StatusBar style="dark" />
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: C.card }}>
         <View style={{ flex: 1, width: '100%', maxWidth: 480, alignSelf: 'center', backgroundColor: C.bg }}>
           {auth.restaurando && <ActivityIndicator size="large" color={C.primary} style={{ marginTop: 80 }} accessibilityLabel="Carregando" />}
           {!auth.restaurando && !logged && (
@@ -56,7 +58,7 @@ export default function App() {
             <EditarRemedio inicial={editando} onBack={() => setScreen('home')} onSave={salvarEdicao} />
           )}
           {logged && screen === 'history' && <History meds={m.meds} />}
-          {logged && screen === 'assistant' && <Assistant />}
+          {logged && screen === 'assistant' && <Assistant conversa={assistente} />}
           {logged && screen === 'profile' && (
             <Profile user={auth.user} onSave={auth.salvarPerfil} onLogout={sair}
               onOpenDependent={(p) => { setAcompanhando(p); setScreen('dependente'); }} />

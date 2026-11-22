@@ -1,24 +1,24 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, Pressable, Linking, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { C } from '../theme';
-import { Btn, Card, Field, Header } from './components';
+import { C, E, I, T, TOQUE } from '../theme';
+import { Btn, Card, Field, Header, s } from './components';
 import { useVinculoController } from '../controllers/VinculoController';
 import { ConectarComCodigo, GerarCodigo, LinhaPessoa } from './Supervisao';
 import Confirmacao from './Confirmacao';
 
 const Row = ({ icon, label, value }) => (
-  <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
-    <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: C.primaryBg, alignItems: 'center', justifyContent: 'center' }}>
-      <Ionicons name={icon} size={26} color={C.primary} /></View>
+  <Card style={{ flexDirection: 'row', alignItems: 'center', gap: E.g }}>
+    <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: C.primaryBg, alignItems: 'center', justifyContent: 'center' }}>
+      <Ionicons name={icon} size={I.m} color={C.primary} /></View>
     <View style={{ flex: 1 }}>
-      <Text style={{ fontSize: 16, color: C.muted }}>{label}</Text>
-      <Text style={{ fontSize: 20, fontWeight: '800', color: C.ink }}>{value}</Text>
+      <Text style={s.apoio}>{label}</Text>
+      <Text style={{ fontSize: T.medio, fontWeight: T.semibold, color: C.ink }}>{value}</Text>
     </View>
   </Card>
 );
 const Titulo = ({ children }) => (
-  <Text accessibilityRole="header" style={{ fontSize: 22, fontWeight: '800', color: C.ink, marginTop: 8, marginBottom: 12 }}>{children}</Text>
+  <Text accessibilityRole="header" style={[s.h2, { marginTop: E.gg, marginBottom: E.m }]}>{children}</Text>
 );
 
 export default function Profile({ user, onSave, onLogout, onOpenDependent }) {
@@ -44,34 +44,33 @@ export default function Profile({ user, onSave, onLogout, onOpenDependent }) {
 
   return (
     <View style={{ flex: 1 }}>
-      <Header title="Meu Perfil" sub="Seus dados, supervisores e contatos de emergência" />
-      <ScrollView contentContainerStyle={{ padding: 20 }} keyboardShouldPersistTaps="handled">
+      <Header title="Meu perfil" sub="Seus dados, supervisores e contatos de emergência" />
+      <ScrollView contentContainerStyle={{ padding: E.g }} keyboardShouldPersistTaps="handled">
         {incompleto && (
-          <Card style={{ borderColor: C.primary, borderWidth: 2, backgroundColor: C.primaryBg, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            <Ionicons name="information-circle" size={32} color={C.primary} />
+          <Card style={{ borderColor: C.primary, borderWidth: 2, backgroundColor: C.primaryBg, flexDirection: 'row', alignItems: 'center', gap: E.m }}>
+            <Ionicons name="information-circle-outline" size={I.g} color={C.primary} />
             <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 20, fontWeight: '800', color: C.ink }}>Complete seu perfil</Text>
-              <Text style={{ fontSize: 17, color: C.ink }}>Preencha seu nome e sua idade e toque em SALVAR.</Text>
+              <Text style={s.h2}>Complete seu perfil</Text>
+              <Text style={s.corpo}>Preencha seu nome e sua idade e toque em Salvar.</Text>
             </View>
           </Card>
         )}
 
         {/* Supervisores reais do usuário */}
-        <Card style={{ borderColor: C.primary, borderWidth: 2 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-            <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: C.okDark, alignItems: 'center', justifyContent: 'center' }}>
-              <Ionicons name="shield-checkmark" size={26} color="#fff" /></View>
-            <Text style={{ flex: 1, fontSize: 20, fontWeight: '800', color: C.ink }}>Supervisor Conectado</Text>
+        <Card>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: E.m, marginBottom: E.p }}>
+            <Ionicons name="shield-checkmark-outline" size={I.g} color={C.okDark} />
+            <Text accessibilityRole="header" style={[s.h2, { flex: 1 }]}>Supervisor conectado</Text>
           </View>
           {v.loading && <ActivityIndicator size="large" color={C.primary} accessibilityLabel="Carregando" />}
           {!!v.error && (
-            <View style={{ gap: 12 }}>
-              <Text style={{ fontSize: 17, color: C.redDark }}>{v.error}</Text>
-              <Btn label="TENTAR DE NOVO" variant="soft" onPress={v.carregar} />
+            <View style={{ gap: E.m }}>
+              <Text style={s.erro}>{v.error}</Text>
+              <Btn label="Tentar de novo" variant="soft" onPress={v.carregar} />
             </View>
           )}
           {!v.loading && !v.error && supervisors.length === 0 && (
-            <Text style={{ fontSize: 18, color: C.muted }}>Nenhum supervisor ainda</Text>
+            <Text style={[s.apoio, { fontSize: T.medio }]}>Nenhum supervisor ainda</Text>
           )}
           {supervisors.map((p) => (
             <LinhaPessoa key={p.vinculoId} pessoa={p} onRemover={(pessoa) => setRemover({ pessoa, papel: 'supervisor' })} />
@@ -85,7 +84,7 @@ export default function Profile({ user, onSave, onLogout, onOpenDependent }) {
         <Titulo>Pessoas que eu acompanho</Titulo>
         <Card>
           {!v.loading && !v.error && dependents.length === 0 && (
-            <Text style={{ fontSize: 18, color: C.muted }}>Você ainda não acompanha ninguém.</Text>
+            <Text style={[s.apoio, { fontSize: T.medio }]}>Você ainda não acompanha ninguém.</Text>
           )}
           {dependents.map((p) => (
             <LinhaPessoa key={p.vinculoId} pessoa={p} onAbrir={onOpenDependent}
@@ -93,30 +92,30 @@ export default function Profile({ user, onSave, onLogout, onOpenDependent }) {
           ))}
         </Card>
 
-        <Titulo>Dados Pessoais</Titulo>
+        <Titulo>Dados pessoais</Titulo>
         <Field label="Como gosta de ser chamado?" placeholder="Seu nome" value={nome} onChangeText={setNome} maxLength={100} />
         <Field label="Sua idade" placeholder="Ex: 65" keyboardType="number-pad" inputMode="numeric" maxLength={3}
           value={idade} onChangeText={(t) => setIdade(t.replace(/\D/g, ''))} />
-        <Row icon="mail" label="E-mail (não pode ser alterado)" value={user.email} />
-        <Btn label={salvando ? 'SALVANDO...' : 'SALVAR'} icon="save" onPress={salvar} disabled={salvando} />
+        <Row icon="mail-outline" label="E-mail (não pode ser alterado)" value={user.email} />
+        <Btn label={salvando ? 'Salvando...' : 'Salvar'} icon="save-outline" onPress={salvar} disabled={salvando} />
         {!!msg.texto && (
-          <Text accessibilityLiveRegion="polite" style={{ fontSize: 17, color: msg.ok ? C.okDark : C.redDark, textAlign: 'center', marginTop: 12 }}>{msg.texto}</Text>
+          <Text accessibilityLiveRegion="polite" style={[msg.ok ? s.sucesso : s.erro, { textAlign: 'center', marginTop: E.m }]}>{msg.texto}</Text>
         )}
 
-        <Card style={{ borderColor: '#FCA5A5', backgroundColor: '#FFF5F5', marginTop: 24 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-            <Ionicons name="warning" size={32} color={C.red} />
-            <Text style={{ fontSize: 22, fontWeight: '800', color: C.redDark }}>Botão de Pânico</Text>
+        <Card style={{ borderColor: C.red, backgroundColor: C.redBg, marginTop: E.gg }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: E.p, marginBottom: E.m }}>
+            <Ionicons name="warning-outline" size={I.g} color={C.redDark} />
+            <Text accessibilityRole="header" style={[s.h2, { color: C.redDark }]}>Botão de pânico</Text>
           </View>
-          <Btn label="LIGAR PARA EMERGÊNCIA" icon="call" variant="danger" onPress={() => Linking.openURL('tel:192')} style={{ minHeight: 64 }} />
-          <Text style={{ fontSize: 16, color: C.ink, marginTop: 12, textAlign: 'center' }}>
+          <Btn label="Ligar para emergência" icon="call" variant="danger" onPress={() => Linking.openURL('tel:192')} />
+          <Text style={[s.corpo, { marginTop: E.m, textAlign: 'center' }]}>
             {supervisors.length > 0
               ? `Em caso de emergência, ligue 192. Seus supervisores: ${nomesSupervisores}.`
               : 'Conecte um supervisor para ter alguém de confiança acompanhando você.'}</Text>
         </Card>
 
-        <Pressable onPress={onLogout} accessibilityRole="button" style={{ minHeight: 56, alignItems: 'center', justifyContent: 'center', marginTop: 8 }}>
-          <Text style={{ fontSize: 18, fontWeight: '700', color: C.primary, textDecorationLine: 'underline' }}>Sair da Conta</Text>
+        <Pressable onPress={onLogout} accessibilityRole="button" style={{ minHeight: TOQUE, alignItems: 'center', justifyContent: 'center', marginTop: E.p }}>
+          <Text style={{ fontSize: T.medio, fontWeight: T.semibold, color: C.primary, textDecorationLine: 'underline' }}>Sair da conta</Text>
         </Pressable>
       </ScrollView>
 
@@ -126,7 +125,7 @@ export default function Profile({ user, onSave, onLogout, onOpenDependent }) {
           texto={remover.papel === 'supervisor'
             ? 'Esta pessoa deixará de ver seus remédios e seu progresso.'
             : 'Você deixará de ver os remédios e o progresso desta pessoa.'}
-          rotulo="SIM, REMOVER"
+          rotulo="Sim, remover"
           onConfirmar={async () => { await v.remover(remover.pessoa.vinculoId); setRemover(null); }}
           onCancelar={() => setRemover(null)} />
       )}

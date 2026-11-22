@@ -1,9 +1,9 @@
 import React from 'react';
-import { View, Text, ScrollView } from 'react-native';
+import { View, Text, ScrollView, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { C } from '../theme';
+import { C, E, I, R, T } from '../theme';
 import { useHistoryController } from '../controllers/HistoryController';
-import { Card, Header, MESES } from './components';
+import { Card, Header, MESES, s } from './components';
 
 // Células do calendário do mês: espaços vazios até o 1º dia cair no dia da semana certo.
 const celulasDoMes = (agora) => {
@@ -22,60 +22,60 @@ export default function History({ meds }) {
   const cells = celulasDoMes(agora);
   return (
     <View style={{ flex: 1 }}>
-      <Header title="Seu Progresso" sub="Veja quando você tomou seus remédios" />
-      <ScrollView contentContainerStyle={{ padding: 20 }}>
-        {loading && <Text style={{ fontSize: 17, color: C.muted, marginBottom: 12 }}>Carregando...</Text>}
-        {!!error && <Text style={{ fontSize: 17, color: C.redDark, marginBottom: 12 }}>{error}</Text>}
+      <Header title="Seu progresso" sub="Veja quando você tomou seus remédios" />
+      <ScrollView contentContainerStyle={{ padding: E.g }}>
+        {loading && <ActivityIndicator size="large" color={C.primary} style={{ marginBottom: E.m }} accessibilityLabel="Carregando" />}
+        {!!error && <Text style={[s.erro, { marginBottom: E.m }]}>{error}</Text>}
         <Card>
-          <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginBottom: 12 }}>
-            <Ionicons name="chevron-back" size={28} color={C.muted} />
-            <Text style={{ fontSize: 22, fontWeight: '800', color: C.ink, marginHorizontal: 24 }}>{MESES[agora.getMonth()]} {agora.getFullYear()}</Text>
-            <Ionicons name="chevron-forward" size={28} color={C.muted} />
+          <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginBottom: E.m }}>
+            <Ionicons name="chevron-back" size={I.m} color={C.hint} />
+            <Text style={[s.h2, { marginHorizontal: E.gg }]}>{MESES[agora.getMonth()]} {agora.getFullYear()}</Text>
+            <Ionicons name="chevron-forward" size={I.m} color={C.hint} />
           </View>
           <View style={{ flexDirection: 'row' }}>
             {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((d, i) => (
-              <Text key={i} style={{ width: '14.28%', textAlign: 'center', fontSize: 16, fontWeight: '700', color: C.muted }}>{d}</Text>
+              <Text key={i} style={{ width: '14.28%', textAlign: 'center', fontSize: T.corpo, fontWeight: T.semibold, color: C.muted }}>{d}</Text>
             ))}
           </View>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
             {cells.map((n, i) => {
               const st = hist.status[n], miss = st === 'FALHOU', today = n === TODAY;
               return (
-                <View key={i} style={{ width: '14.28%', height: 52, alignItems: 'center', justifyContent: 'center' }}>
+                <View key={i} style={{ width: '14.28%', height: 48, alignItems: 'center', justifyContent: 'center' }}>
                   {n && (
-                    <View style={{ width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', borderWidth: today ? 2.5 : 0, borderColor: C.primary }}>
-                      <Text style={{ fontSize: 17, fontWeight: today ? '800' : '600', color: C.ink }}>{n}</Text>
-                      {st && <View style={{ position: 'absolute', bottom: 0, width: 8, height: 8, borderRadius: 4, backgroundColor: miss ? C.red : C.ok }} />}
+                    <View style={{ width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', borderWidth: today ? 2 : 0, borderColor: C.primary }}>
+                      <Text style={{ fontSize: T.corpo, fontWeight: today ? T.semibold : T.regular, color: C.ink }}>{n}</Text>
+                      {st && <View style={{ position: 'absolute', bottom: 1, width: E.p, height: E.p, borderRadius: E.p / 2, backgroundColor: miss ? C.red : C.ok }} />}
                     </View>
                   )}
                 </View>
               );
             })}
           </View>
-          <View style={{ flexDirection: 'row', gap: 20, marginTop: 8 }}>
+          <View style={{ flexDirection: 'row', gap: E.gg, marginTop: E.p }}>
             <Legend color={C.ok} t="Tomou tudo" /><Legend color={C.red} t="Esqueceu" />
           </View>
         </Card>
 
-        <View style={{ flexDirection: 'row', gap: 16 }}>
-          <Stat n={String(hist.streak)} t="Dias seguidos" bg={C.primaryBg} fg={C.primary} />
-          <Stat n={`${hist.adherence}%`} t="Adesão" bg={C.okBg} fg={C.okDark} />
+        <View style={{ flexDirection: 'row', gap: E.m }}>
+          <Stat n={String(hist.streak)} t="Dias seguidos" fg={C.primary} />
+          <Stat n={`${hist.adherence}%`} t="Adesão" fg={C.okDark} />
         </View>
 
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginVertical: 12 }}>
-          <Text style={{ fontSize: 22, fontWeight: '800', color: C.ink }}>Resumo de Hoje</Text>
-          <Text style={{ fontSize: 17, color: C.muted }}>{TODAY} de {MESES[agora.getMonth()]}</Text>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginTop: E.gg, marginBottom: E.m }}>
+          <Text accessibilityRole="header" style={s.h2}>Resumo de hoje</Text>
+          <Text style={s.apoio}>{TODAY} de {MESES[agora.getMonth()]}</Text>
         </View>
         {meds.map((m) => (
-          <Card key={m.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-            <View style={{ backgroundColor: m.done ? C.okBg : C.line, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 14 }}>
-              <Text style={{ fontSize: 20, fontWeight: '800', color: m.done ? C.okDark : C.muted }}>{m.time}</Text>
+          <Card key={m.id} style={{ flexDirection: 'row', alignItems: 'center', gap: E.m }}>
+            <View style={{ backgroundColor: m.done ? C.okBg : C.bg, borderRadius: R, paddingHorizontal: E.m, paddingVertical: E.m }}>
+              <Text style={{ fontSize: T.medio, fontWeight: T.semibold, color: m.done ? C.okDark : C.muted }}>{m.time}</Text>
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 20, fontWeight: '800', color: C.ink }}>{m.name}</Text>
-              <Text style={{ fontSize: 17, color: C.muted }}>{m.dose}</Text>
+              <Text style={{ fontSize: T.titulo, fontWeight: T.semibold, color: C.ink }}>{m.name}</Text>
+              <Text style={s.apoio}>{m.dose}</Text>
             </View>
-            <Ionicons name={m.done ? 'checkmark-circle' : 'time-outline'} size={36} color={m.done ? C.ok : C.hint} accessibilityLabel={m.done ? 'Tomado' : 'Pendente'} />
+            <Ionicons name={m.done ? 'checkmark-circle' : 'time-outline'} size={I.g} color={m.done ? C.okDark : C.hint} accessibilityLabel={m.done ? 'Tomado' : 'Pendente'} />
           </Card>
         ))}
       </ScrollView>
@@ -84,14 +84,15 @@ export default function History({ meds }) {
 }
 
 const Legend = ({ color, t }) => (
-  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-    <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: color }} />
-    <Text style={{ fontSize: 16, color: C.muted }}>{t}</Text>
+  <View style={{ flexDirection: 'row', alignItems: 'center', gap: E.p }}>
+    <View style={{ width: E.m, height: E.m, borderRadius: E.m / 2, backgroundColor: color }} />
+    <Text style={s.apoio}>{t}</Text>
   </View>
 );
-const Stat = ({ n, t, bg, fg }) => (
-  <View style={{ flex: 1, backgroundColor: bg, borderRadius: 20, padding: 16, alignItems: 'center' }}>
-    <Text style={{ fontSize: 40, fontWeight: '800', color: fg }}>{n}</Text>
-    <Text style={{ fontSize: 18, fontWeight: '700', color: C.ink }}>{t}</Text>
-  </View>
+// Número de destaque num cartão neutro (a cor fica só no número).
+export const Stat = ({ n, t, fg }) => (
+  <Card style={{ flex: 1, alignItems: 'center', marginBottom: 0 }}>
+    <Text style={{ fontSize: T.numero, fontWeight: T.semibold, color: fg }}>{n}</Text>
+    <Text style={{ fontSize: T.corpo, color: C.muted }}>{t}</Text>
+  </Card>
 );

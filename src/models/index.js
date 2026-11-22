@@ -47,6 +47,14 @@ export const toResumo = (d) => ({
   name: d.nome || SEM_NOME, meds: (d.medicamentos || []).map(toMedicamento),
   streak: d.diasSeguidos, adherence: d.adesao,
 });
+// Assistente: a API termina a resposta com o aviso fixo. Separamos para a tela mostrar o aviso
+// em destaque discreto (e o "Ouvir" ler só a resposta). Se o aviso não vier, a tela mostra mesmo assim.
+export const AVISO_IA = 'Informação de apoio. Confirme com seu médico ou farmacêutico.';
+export const toResposta = (d) => {
+  const texto = (d.resposta || '').trim();
+  return { text: texto.endsWith(AVISO_IA) ? texto.slice(0, -AVISO_IA.length).trim() : texto, notice: AVISO_IA };
+};
+
 export const toHistorico = (d) => ({
   streak: d.diasSeguidos, adherence: d.adesao,
   status: Object.fromEntries((d.dias || []).map((x) => [x.dia, x.status])),
