@@ -3,6 +3,8 @@ import { View, Text, ScrollView, ActivityIndicator } from 'react-native';
 import { C, E, R, T } from '../theme';
 import { BotaoIcone, Btn, Card, Header, s } from './components';
 import { useResumoController } from '../controllers/ResumoController';
+import { useHistoryController } from '../controllers/HistoryController';
+import CalendarioHistorico from './CalendarioHistorico';
 import Confirmacao from './Confirmacao';
 import StatusBadge, { bordaDoStatus } from './StatusBadge';
 import { Stat } from './History';
@@ -12,6 +14,7 @@ import { useMinuto } from '../controllers/useMinuto';
 /** Tela do supervisor: resumo de hoje de quem ele acompanha. Somente leitura (sem "Já tomei"). */
 export default function ResumoDependente({ pessoa, onBack }) {
   const { resumo, loading, error, carregar, parar } = useResumoController(pessoa.id);
+  const historico = useHistoryController(pessoa.id); // calendário do mês de quem ele acompanha
   const [confirmar, setConfirmar] = useState(false);
   const agora = useMinuto(); // reavalia Pendente -> Atrasado a cada minuto
 
@@ -29,11 +32,13 @@ export default function ResumoDependente({ pessoa, onBack }) {
         )}
         {resumo && (
           <>
-            <View style={{ flexDirection: 'row', gap: E.m, marginBottom: E.gg }}>
-              <Stat n={String(resumo.streak)} t="Dias seguidos" fg={C.primary} />
-              <Stat n={`${resumo.adherence}%`} t="Adesão" fg={C.okDark} />
+            {/* Cartões e calendário vêm da mesma resposta (o mês mostrado), para ficarem coerentes. */}
+            <View style={{ flexDirection: 'row', gap: E.m, marginBottom: E.m }}>
+              <Stat n={String(historico.hist.streak)} t="Dias seguidos" fg={C.primary} />
+              <Stat n={`${historico.hist.adherence}%`} t="Adesão" fg={C.okDark} />
             </View>
-            <Text accessibilityRole="header" style={[s.h2, { marginBottom: E.m }]}>Remédios de hoje</Text>
+            <CalendarioHistorico historico={historico} />
+            <Text accessibilityRole="header" style={[s.h2, { marginTop: E.m, marginBottom: E.m }]}>Remédios de hoje</Text>
             {resumo.meds.length === 0 && <Text style={[s.apoio, { fontSize: T.medio, marginBottom: E.g }]}>Nenhum remédio para hoje.</Text>}
             {resumo.meds.map((m) => {
               const status = statusAgora(m, true, agora); // o resumo é sempre de hoje

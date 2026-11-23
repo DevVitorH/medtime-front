@@ -36,7 +36,20 @@ const medRes = (m, data) => {
   return { ...m, tomado: tomou, status: calcularStatus(m, data, tomadoEm, tomou), tomadoEm };
 };
 const dataDaRota = (path) => (path.match(/data=(\d{4}-\d{2}-\d{2})/) || [])[1] || hoje();
-const falhas = [5, 12];
+const falhas = [5, 12]; // dias em que "esqueceu" (em todo mês, para a demonstração)
+// Igual a GET /api/historico: só dias antes de hoje; mês passado completo; mês futuro vazio.
+const historicoMock = (path) => {
+  const data = dataDaRota(path);
+  const mes = (path.match(/mes=(\d{4}-\d{2})/) || [])[1] || data.slice(0, 7);
+  const [ano, m] = mes.split('-').map(Number);
+  const totalDoMes = new Date(ano, m, 0).getDate();
+  const diasAntes = mes < data.slice(0, 7) ? totalDoMes : mes === data.slice(0, 7) ? Number(data.slice(8, 10)) - 1 : 0;
+  const dias = Array.from({ length: diasAntes }, (_, i) => ({ dia: i + 1, status: falhas.includes(i + 1) ? 'FALHOU' : 'TOMOU' }));
+  let seguidos = 0;
+  for (let i = dias.length - 1; i >= 0 && dias[i].status === 'TOMOU'; i--) seguidos++;
+  const adesao = dias.length ? Math.round((100 * dias.filter((d) => d.status === 'TOMOU').length) / dias.length) : 0;
+  return { diasSeguidos: seguidos, adesao, dias };
+};
 const wait = (v) => new Promise((r) => setTimeout(() => r(v), 300));
 // Erro no mesmo formato da API: status + mensagem.
 const erro = (status, mensagem) => { const e = new Error(mensagem); e.status = status; throw e; };
@@ -138,11 +151,12 @@ export async function mock(method, path, body, token) {
     vinculos = vinculos.filter((x) => x !== v);
     return wait(null);
   }
-  const dep = path.match(/^\/api\/dependentes\/(\d+)\/resumo/);
+  const dep = path.match(/^\/api\/dependentes\/(\d+)\/(resumo|historico)/);
   if (dep) {
     const depEmail = emailPorId(Number(dep[1]));
     if (!depEmail || !vinculos.some((v) => v.dependente === depEmail && v.supervisor === email)) erro(403, 'Você não acompanha esta pessoa.');
-    // No modo demonstração os remédios são os mesmos para todas as contas.
+    // No modo demonstração os remédios e o histórico são os mesmos para todas as contas.
+    if (dep[2] === 'historico') return wait(historicoMock(path));
     const data = dataDaRota(path);
     const lista = meds.filter((m) => agendadoEm(m, data)).sort((a, b) => a.horario.localeCompare(b.horario));
     return wait({ nome: contas[depEmail].nome, data, medicamentos: lista.map((m) => medRes(m, data)), diasSeguidos: 8, adesao: 90 });
@@ -182,16 +196,7 @@ export async function mock(method, path, body, token) {
     if (!tomadas.has(`${m.id}|${data}`)) tomadas.set(`${m.id}|${data}`, horaAgora());
     return wait(medRes(m, data));
   }
-  if (path.startsWith('/api/historico')) {
-    // Igual à API: só os dias do mês antes de hoje (?data=yyyy-MM-dd).
-    const data = (path.match(/data=(\d{4}-\d{2}-\d{2})/) || [])[1];
-    const diasAntes = data ? Number(data.slice(8, 10)) - 1 : 24;
-    const dias = Array.from({ length: diasAntes }, (_, i) => ({ dia: i + 1, status: falhas.includes(i + 1) ? 'FALHOU' : 'TOMOU' }));
-    let seguidos = 0;
-    for (let i = dias.length - 1; i >= 0 && dias[i].status === 'TOMOU'; i--) seguidos++;
-    const adesao = dias.length ? Math.round((100 * dias.filter((d) => d.status === 'TOMOU').length) / dias.length) : 0;
-    return wait({ diasSeguidos: seguidos, adesao, dias });
-  }
+  if (path.startsWith('/api/historico')) return wait(historicoMock(path));
   if (path === '/api/assistente/perguntar') {
     return wait({ resposta: `Modo demonstração. Você perguntou: ${body.pergunta}. Confirme sempre com seu médico ou farmacêutico.` });
   }

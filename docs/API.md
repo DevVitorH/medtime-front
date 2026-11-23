@@ -75,6 +75,7 @@ Gerar o código é o consentimento (LGPD): "Quem usar este código poderá ver s
 | `GET /api/vinculos` | – | `{supervisores:[pessoa], dependentes:[pessoa]}` |
 | `DELETE /api/vinculos/{id}` | – | 204. Qualquer um dos dois lados pode remover; senão 404 `"Vínculo não encontrado."` |
 | `GET /api/dependentes/{id}/resumo?data=2026-11-21` | – | `{nome, data, medicamentos:[medicamento], diasSeguidos, adesao}` |
+| `GET /api/dependentes/{id}/historico?mes=2026-11&data=2026-11-23` | – | Igual a `GET /api/historico`: `{diasSeguidos, adesao, dias:[{dia, status}]}` do dependente, no mês pedido. Somente leitura |
 
 - Código: 6 caracteres de `ABCDEFGHJKLMNPQRSTUVWXYZ23456789` (sem O, 0, I e 1), gerado com `SecureRandom`,
   **uso único**, válido por **30 minutos**. O código nunca é registrado em log.
@@ -82,7 +83,7 @@ Gerar o código é o consentimento (LGPD): "Quem usar este código poderá ver s
   `"Este código já foi usado. Peça um novo."`, `"Você não pode ser supervisor de si mesmo."`; 409 `"Vocês já estão conectados."`.
 - **5 códigos errados** (inválido, expirado ou já usado) em 15 minutos → bloqueio de **15 minutos**, 429
   `"Muitas tentativas. Tente de novo em alguns minutos."`. Um código certo zera a contagem.
-- **Resumo = dados de saúde:** só para o **supervisor** com vínculo com aquele dependente; senão **403**
+- **Resumo e histórico do dependente = dados de saúde:** só para o **supervisor** com vínculo com aquele dependente; senão **403**
   `"Você não acompanha esta pessoa."` (também quando o id não existe, para não revelar quem tem conta).
   O dependente não vê os remédios do supervisor.
 
